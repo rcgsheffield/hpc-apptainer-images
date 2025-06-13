@@ -15,7 +15,7 @@ description = """ANSYS simulation software enables organizations to confidently 
 modloadmsg = """------------------------------------------------------------
 This module loads an experimental build of ANSYS Fluent from
 an apptainer container image. It does not support multi-node
-jobs. Proceed with caution.")
+jobs. Proceed with caution.
 ------------------------------------------------------------
 Available Commands: fluent, runwb2
 ------------------------------------------------------------"""
