@@ -37,7 +37,7 @@ Available Commands: dorado
 install_cmds = [
     #build fakeroot command left for future fix
     #"apptainer build --fakeroot " + local_sif_image + " " + local_def_file
-    "cp /users/sa_cs1nmu/" + local_sif_image + " %(installdir)s",
+    "cp ~/" + local_sif_image + " %(installdir)s",
     "mkdir -p %(installdir)s/bin",
     #Abstracts the container commands from the user
     "echo \#\!/bin/bash > %(installdir)s/bin/dorado",
