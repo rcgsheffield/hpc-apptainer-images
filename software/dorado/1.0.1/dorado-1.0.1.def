@@ -1,0 +1,42 @@
+Bootstrap: docker
+From: quay.io/centos/centos:stream9
+
+%labels
+    Author Nikishe
+    Version v1.0.1
+    Description Dorado container with CentOS Stream 9
+
+%post
+    echo ">>> Updating base image and installing dependencies with dnf"
+    dnf -y update && dnf -y install \
+        wget \
+        tar \
+        gzip \
+        ca-certificates \
+        curl \
+        openssl \
+        libcurl \
+        libgomp \
+        wget && \
+    dnf clean all    
+    dnf -y install wget && dnf clean all
+
+    echo ">>> Set Dorado version"
+    export DORADO_VERSION="1.0.1"
+
+    echo ">>> Downloading and extracting Dorado v${DORADO_VERSION}"
+    mkdir -p /opt/dorado
+    cd /opt/dorado
+    curl  "https://cdn.oxfordnanoportal.com/software/analysis/dorado-${DORADO_VERSION}-linux-x64.tar.gz" -o dorado-1.0.1-linux-x64.tar.gz
+    tar -xzf dorado-1.0.1-linux-x64.tar.gz --strip-components=1
+    rm dorado-1.0.1-linux-x64.tar.gz
+
+    echo ">>> Creating symlink to Dorado binary"
+    ln -s /opt/dorado/bin/dorado /usr/local/bin/dorado
+
+%environment
+    export PATH=/opt/dorado/bin/:$PATH
+
+%test
+    echo ">>> Testing Dorado installation"
+    dorado --version
