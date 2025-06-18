@@ -1,0 +1,86 @@
+Bootstrap: docker
+From: quay.io/centos/centos:stream9
+
+%post
+    set -e
+    
+    echo ">>> Install development tools"
+    yum groupinstall "Development Tools" -y
+
+    echo ">>> Updating system and installing dependencies"
+    dnf -y update && dnf -y install \
+        wget \
+        tar \
+        gzip \
+        ca-certificates \
+        openssl \
+        libgomp \
+        gcc-gfortran \
+        gcc-c++ \
+        cmake \
+        openmpi \
+        openmpi-devel \
+        make \
+        git
+    
+
+    echo ">>> Set environment variables for OpenMPI"
+    echo 'export PATH=/usr/lib64/openmpi/bin:$PATH' >> /etc/profile.d/openmpi.sh
+    echo 'export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:$LD_LIBRARY_PATH' >> /etc/profile.d/openmpi.sh
+    source /etc/profile.d/openmpi.sh
+    export PATH=/usr/lib64/openmpi/bin:$PATH
+
+echo ">>> Downloading and building CHAPSim2.0"
+cd /opt
+git clone  https://github.com/lbyuan0831/CHAPSim2.git
+cd CHAPSim2
+
+echo ">>> Patching Makefile and Fortran source"
+# Patch source for proper Fortran compilation
+echo ">>> Creating build directory"
+mkdir bin obj mod
+
+echo ">>> Editing the make file to make use of 2decomp&fft lib by UoE&ICL, 2022"
+# Make a backup first
+cp Makefile Makefile.bak
+
+echo ">>> Changes to use '2decomp-fft-main'(latest) instead of '2decomp_fft_updated'(older)"
+# Replace block comments as specified
+sed -i \
+    -e 's|^#include ./lib/2decomp-fft-main/Makefile.settings|include ./lib/2decomp-fft-main/Makefile.settings|' \
+    -e 's|^#INCLUDE= -I./lib/2decomp-fft-main/mod|INCLUDE= -I./lib/2decomp-fft-main/mod|' \
+    -e 's|^#LIBS= -L./lib/2decomp-fft-main -ldecomp2d|LIBS= -L./lib/2decomp-fft-main -ldecomp2d|' \
+    -e 's|^include ./lib/2decomp_fft_updated/src/Makefile.inc|#include ./lib/2decomp_fft_updated/src/Makefile.inc|' \
+    -e 's|^INCLUDE= -I./lib/2decomp_fft_updated/include|#INCLUDE= -I./lib/2decomp_fft_updated/include|' \
+    -e 's|^LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft|#LIBS= -L./lib/2decomp_fft_updated/lib -l2decomp_fft|' "Makefile"
+
+echo "Update complete. Original backed up as: $FILE.bak"
+echo ">>> Build / Make 2decomp-fft-main"
+cd ./lib/2decomp-fft-main/
+make 
+echo ">>> Build / Make Chapsim2"
+
+cd /opt/CHAPSim2/
+
+
+sed -i 's/^\([[:space:]]*\)@mv \*\.mod \$(DIR_OBJ)/\1#@mv *.mod $(DIR_OBJ)/' Makefile
+
+
+make all
+
+
+echo ">>> Adding CHAPSim binary to PATH"
+mkdir -p /usr/local/bin
+ln -s /opt/CHAPSim2/bin/CHAPSim /usr/local/bin/CHAPSim
+
+%environment
+    export PATH=/usr/lib64/openmpi/bin:/usr/local/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:$LD_LIBRARY_PATH
+
+%labels
+    Author Nikishe
+    Version CHAPSim2
+    Description CHAPSim2 container with 2decomp_fft on CentOS9
+
+%runscript
+    #exec CHAPSim2 "$@"
