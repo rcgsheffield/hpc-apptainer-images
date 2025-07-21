@@ -1,0 +1,57 @@
+easyblock = "Binary"
+
+name = "dorado"
+version = "1.0.1"
+
+homepage = "https://dorado-docs.readthedocs.io"
+description = """Dorado is a high-performance, easy-to-use, open source analysis engine for Oxford Nanopore reads."""
+
+toolchain = SYSTEM
+osdependencies = ['apptainer'] 
+
+sources = [{"filename": "dorado-1.0.1.def"},]
+
+checksums = [
+    {"dorado-1.0.1.def": "dce6bcb216fd35e4294d579395090cec"}    
+]
+extract_sources = False
+
+
+# Container details
+local_def_file =  "%(name)s-%(version)s.def"
+local_sif_image = "%(name)s-%(version)s.sif"
+local_launch_command = "apptainer exec"
+
+# User warning on module load
+modloadmsg = """------------------------------------------------------------
+This module loads an experimental build of dorado that runs from
+an apptainer container. It does not support multi-node
+jobs. Proceed with caution.
+------------------------------------------------------------
+Available Commands: dorado
+------------------------------------------------------------"""
+
+
+# Install commands
+# NOTE: Container is assumed pre-built until fakeroot issues are resolved
+install_cmds = [
+    #build fakeroot command left for future fix
+    #"apptainer build --fakeroot " + local_sif_image + " " + local_def_file
+    "cp ~/" + local_sif_image + " %(installdir)s",
+    "mkdir -p %(installdir)s/bin",
+    #Abstracts the container commands from the user
+    "echo \#\!/bin/bash > %(installdir)s/bin/dorado",
+    "echo " + local_launch_command + " %(installdir)s/" + local_sif_image + " dorado \\\"\\$@\\\" >> %(installdir)s/bin/dorado",
+    "chmod +x %(installdir)s/bin/dorado",
+]
+
+sanity_check_paths = {
+    "files": ["bin/dorado"],
+    "dirs": [],
+}
+
+sanity_check_commands = [
+    "dorado -vv"
+]
+
+moduleclass = "bio"
