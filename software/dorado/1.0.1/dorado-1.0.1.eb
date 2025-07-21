@@ -7,7 +7,7 @@ homepage = "https://dorado-docs.readthedocs.io"
 description = """Dorado is a high-performance, easy-to-use, open source analysis engine for Oxford Nanopore reads."""
 
 toolchain = SYSTEM
-osdependencies = [] 
+osdependencies = ['apptainer'] 
 
 sources = [{"filename": "dorado-1.0.1.def"},]
 
@@ -24,8 +24,8 @@ local_launch_command = "apptainer exec"
 
 # User warning on module load
 modloadmsg = """------------------------------------------------------------
-This module loads an experimental build of dorado from
-an apptainer container image. It does not support multi-node
+This module loads an experimental build of dorado that runs from
+an apptainer container. It does not support multi-node
 jobs. Proceed with caution.
 ------------------------------------------------------------
 Available Commands: dorado
