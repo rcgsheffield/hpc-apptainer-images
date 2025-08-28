@@ -23,3 +23,12 @@ To start Fluent run
 module load ANSYS/$VERSION-Fluent-Container
 fluent
 ```
+
+### Updating the container for a new ANSYS version
+
+1. Download the ISO images for the new version, checking their md5sums.
+2. Calculate the sha256sums of the ISO images.
+3. Start with the 2025R2 `.def` and `.sif` files and replace `2025R2` with the current version.
+4. In the `.def` file replace `252` with the current version shorthand (this can be found from the `*.dvd` file names in the ISO images).
+5. Calculate the sha256sum of the `.def` file.
+6. In the `.eb` file update the `checksums` with the newly calculated sha256sums.

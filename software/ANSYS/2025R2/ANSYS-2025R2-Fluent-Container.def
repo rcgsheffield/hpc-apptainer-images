@@ -13,7 +13,7 @@ From: ubuntu:22.04
     # Extract the Ansys ISOs if they're not already
     ISO_DIR=.
     OUT_DIR=./extracted
-    ANSYSVER=251
+    ANSYSVER=252
     for DISK in 1 2 3 4 5 6 7 8 9
     do
         if [ ! -f $OUT_DIR/$ANSYSVER-$DISK.dvd ]; then
@@ -108,7 +108,7 @@ From: ubuntu:22.04
 
 # Environment variables for inside the container
 %environment
-    export ANSYSVER=251
+    export ANSYSVER=252
     export ANSYSROOT=/opt/ansys_inc/
     export ANSYS_DIR=$ANSYSROOT/v$ANSYSVER/
     export ANSWBCOMMAND=$ANSYS_DIR/Framework/bin/Linux64/runwb2
