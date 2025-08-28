@@ -1,0 +1,144 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+# Install ANSYS 2025R2 Fluent into a container
+# apptainer build --fakeroot ANSYS-2025R2-Fluent-Container.sif ANSYS-2025R2-Fluent-Container.def
+
+# Based on the ANSYS 2025R1 container
+
+
+# Executed on the host system outside of the container when creating the image
+%setup
+
+    # Extract the Ansys ISOs if they're not already
+    ISO_DIR=.
+    OUT_DIR=./extracted
+    ANSYSVER=252
+    for DISK in 1 2 3 4 5 6 7 8 9
+    do
+        if [ ! -f $OUT_DIR/$ANSYSVER-$DISK.dvd ]; then
+            7z x -aos $ISO_DIR/ANSYS2025R2_LINX64_DISK$DISK.iso -o$OUT_DIR
+        fi
+    done
+
+    # Create the isntallation directory and install
+    mkdir -p ${SINGULARITY_ROOTFS}/opt/ansys_inc/
+    /bin/sh $OUT_DIR/INSTALL -nochecks -silent -install_dir ${SINGULARITY_ROOTFS}/opt/ansys_inc/ -fluent 
+
+
+# Copy files from host to system to container image
+#%files
+
+
+# Download files from the internet, install new software and libraries, write configuration files, create new directories, etc
+%post
+    apt-get update
+    apt-get install -y wget gpg
+
+    # fixes for addgroup setuid/user namespaces/fakeroot issues during debconf
+    # https://github.com/apptainer/apptainer/issues/2153
+    echo systemd-journal:x:101: >> /etc/group
+    echo systemd-network:x:102: >> /etc/group
+    echo systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin >> /etc/passwd
+    echo systemd-network:*:1999:0:99999:7::: >> /etc/shadow
+    echo systemd-network:!:: >> /etc/gshadow
+    echo systemd-resolve:x:103: >> /etc/group
+    echo systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin >> /etc/passwd
+    echo systemd-resolve:*:1999:0:99999:7::: >> /etc/shadow
+    echo systemd-resolve:!:: >> /etc/gshadow
+    # alternatively, from https://billauer.co.il/blog/2019/07/apt-install-force-installed/
+#    apt-mark hold systemd
+    echo crontab:x:104: >> /etc/group
+    echo messagebus:x:105: >> /etc/group
+    echo messagebus:x:103:105::/nonexistent:/usr/sbin/nologin >> /etc/passwd
+    echo messagebus:*:1999:0:99999:7::: >> /etc/shadow
+    echo messagebus:!:: >> /etc/gshadow
+    echo systemd-timesync:x:106: >> /etc/group
+    echo systemd-timesync:x:103:106:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin >> /etc/passwd
+    echo systemd-timesync:*:1999:0:99999:7::: >> /etc/shadow
+    echo systemd-timesync:!:: >> /etc/gshadow
+    echo lpadmin:x:107: >> /etc/group
+    echo rdma:x:108: >> /etc/group
+    echo rtkit:x:109: >> /etc/group
+    echo rtkit:x:104:109:RealtimeKit,,,:/proc:/usr/sbin/nologin >> /etc/passwd
+    echo rtkit:*:1999:0:99999:7::: >> /etc/shadow
+    echo rtkit:!:: >> /etc/gshadow
+    echo _ssh:x:110: >> /etc/group
+
+    # Add VirtualGL repository and update
+    wget -O- https://packagecloud.io/dcommander/virtualgl/gpgkey | gpg --dearmor > /etc/apt/trusted.gpg.d/VirtualGL.gpg
+    wget -O/etc/apt/sources.list.d/virtualgl.list https://raw.githubusercontent.com/VirtualGL/repo/main/VirtualGL.list
+    apt-get update
+
+    # If you have issues with nVidia library pass through (--nv), install the same driver version as the host OS
+#    apt-get install -y xserver-xorg-video-nvidia-570 nvidia-utils-570
+
+    # Install VirtualGL (do this first as there's a chance of sourceforge failing and causing the whole build to fail...)
+    apt-get install -y virtualgl libturbojpeg
+
+    # There's a hidden dependence on glxinfo
+    apt-get install -y mesa-utils
+
+    # Install base system
+#    apt-get install -y --no-install-recommends xfce4 xfce4-goodies
+    apt-get install -y build-essential
+
+    # Install ANSYS dependencies
+    apt-get install -y debianutils freeglut3 gzip libapparmor1 libasound2 libasyncns0 libatk1.0-0 libatk-bridge2.0-0 libatomic1 libatspi2.0-0 libavahi-client3 libavahi-common3 libblkid1 libbrotli1 libbsd0 libbz2-1.0 libc6 libc6-i386 libc6-i386 libcairo2 libcairo-gobject2 libcap2 libcom-err2 libcpprest2.10 libcrypt1 libcups2 libcurl4 libcurl4-gnutls-dev libdatrie1 libdbus-1-3 libdeflate0 libdrm2 libdrm-amdgpu1 libdw1 libegl1 libelf1 libenchant-2-2 libepoxy0 libevdev2 libexpat1 libffi8 libflac8 libfontconfig1 libfontenc1 libfreetype6 libfribidi0 libgbm1 libgcc-s1 libgcc-s1-i386-cross libgcrypt20 libgdk-pixbuf-2.0-0 libgl1 libglib2.0-0 libglu1-mesa libglvnd0 libglx0 libgmp10 libgnutls30 libgomp1 libgpg-error0 libgraphite2-3 libgssapi-krb5-2 libgstreamer1.0-0 libgstreamer-gl1.0-0 libgstreamer-plugins-base1.0-0 libgtk2.0-0 libgtk-3-0 libgudev-1.0-0 libharfbuzz0b libharfbuzz-icu0 libhogweed6 libhwloc15 libhyphen0 libibverbs1 libice6 libicu70 libidn2-0 libjavascriptcoregtk-4.0-18 libjbig0 libjpeg62 libjpeg-turbo8 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap-2.5-0 libltdl7 liblz4-1 liblzma5 libmanette-0.2-0 libmd0 libmount1 libncursesw5 libnettle8 libnghttp2-14 libnotify4 libnsl2 libnspr4 libnss3 libnuma1 libnvidia-compute-390 libogg0 libopengl0 libopenjp2-7 libopus0 liborc-0.4-0 libp11-kit0 libpam0g libpango-1.0-0 libpangocairo-1.0-0 libpangoft2-1.0-0 libpci3 libpciaccess0 libpcre2-8-0 libpcre3 libperl-dev libpixman-1-0 libpng16-16 libpsl5 libpulse0 libpulse-mainloop-glib0 librdmacm1 libre2-9 librtmp1 libsasl2-2 libseccomp2 libsecret-1-0 libselinux1 libsm6 libsndfile1 libsoup2.4-1 libssh-4 libssl3 libstdc++6 libstdc++6-i386-cross libtasn1-6 libtbb12 libtbbmalloc2 libthai0 libtheora0 libtiff5 libtinfo6 libtirpc3 libtirpc-dev libucx0 libudev1 libunistring2 libunwind8 libuuid1 libvorbis0a libvorbisenc2 libwayland-client0 libwayland-cursor0 libwayland-egl1 libwayland-server0 libwebkit2gtk-4.0-37 libwebp7 libwebpdemux2 libwebpmux3 libwoff1 libx11-6 libx11-xcb1 libxau6 libxcb1 libxcb-dri3-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render0 libxcb-render-util0 libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libxcomposite1 libxcursor1 libxdamage1 libxdmcp6 libxext6 libxfixes3 libxft2 libxi6 libxinerama1 libxkbcommon0 libxkbcommon-x11-0 libxm4 libxml2 libxmu6 libxrandr2 libxrender1 libxshmfence1 libxslt1.1 libxss1 libxt6 libxtst6 libxxf86vm1 libzstd1 lsb-core make ocl-icd-libopencl1 ocl-icd-opencl-dev tar uuid-dev xfonts-100dpi xfonts-75dpi xterm zlib1g
+    # libx11-6:i386 libxt6:i386 libsystemd0 
+
+    # Dependencies gleamed from pyfluent, etc
+    apt-get install -y csh fontconfig libxi-dev libsm6 libice-dev libxrandr-dev libxinerama-dev libxcursor-dev libglu1-mesa libglvnd-dev
+    apt-get install -y libxt6 libsm6 libice6 libx11-6 libx11-xcb1 libxext6 openssl openssh-client libcairo2 elfutils expat fontconfig libglib2.0-0 libc-bin libc6 jbigkit-bin libxau6 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrender1 libxxf86vm1 libxi6 libdrm-common libdrm2 libjpeg-turbo8 libselinux1 libtiff5 libxcb1 libxshmfence1 libglx-mesa0 libosmesa6 libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1 libglu1-mesa libegl1-mesa libglapi-mesa libpcre2-8-0 libpixman-1-0 libmotif-common libxm4 libgfortran5 xvfb tini ca-certificates libgomp1 libtirpc3 locales
+
+    # There's an issue with libQt5Core.so.5 on older kernels
+    # https://askubuntu.com/questions/1034313/ubuntu-18-4-libqt5core-so-5-cannot-open-shared-object-file-no-such-file-or-dir
+    find /lib/ /opt/ -name libQt5Core.so.5 | xargs -I {} strip --remove-section=.note.ABI-tag {}
+
+    # Clean up
+    apt-get clean all
+    # rm -rf /var/lib/apt/lists/*
+
+    locale-gen en_US.UTF-8 \
+    && locale-gen fr_FR.utf8 \
+    && locale-gen de_DE.utf8 \
+    && locale-gen ja_JP.utf8 \
+    && locale-gen zh_CN.utf8
+
+
+# Environment variables for inside the container
+%environment
+    export ANSYSVER=252
+    export ANSYSROOT=/opt/ansys_inc/
+    export ANSYS_DIR=$ANSYSROOT/v$ANSYSVER/
+    export ANSWBCOMMAND=$ANSYS_DIR/Framework/bin/Linux64/runwb2
+    export FLUENT_INC=$ANSYS_DIR/fluent
+    export PATH=$ANSYSROOT:$ANSYS_DIR/CEI/bin:$ANSYS_DIR/icemcfd/linux64_amd/bin:$ANSYS_DIR/Icepak/bin:$ANSYS_DIR/polyflow/bin:$ANSYS_DIR/TurboGrid/bin:$ANSYS_DIR/fluent/bin:$ANSYS_DIR/CFX/bin:$ANSYS_DIR/CFD-Post/bin:$ANSYS_DIR/autodyn/bin:$ANSYS_DIR/ansys/bin:$ANSYS_DIR/RSM/bin:$ANSYS_DIR/aisol/bin/linx64:$ANSYS_DIR/Framework/bin/Linux64:$PATH
+    unset SESSION_MANAGER
+
+
+# Notes on how to run the container
+%runscript
+    exec echo "Run with --app runwb2, --app fluent, exec runwb2, or exec fluent"
+    exec echo "License server must be specified with ANSYSLMD_LICENSE_FILE environment variable"
+    exec echo "e.g., apptainer run --env ANSYSLMD_LICENSE_FILE=<host> --app runwb2 ANSYS-2025R2-Fluent-Container.sif"
+    exec echo "e.g., apptainer exec --env ANSYSLMD_LICENSE_FILE=<host> ANSYS-2025R2-Fluent-Container.sif runwb2"
+
+# Launch commands
+
+%apprun workbench
+    runwb2 "$@"
+
+%apprun fluent
+    fluent "$@"
+
+%apprun workbench_vgl
+    vglrun runwb2 "$@"
+
+%apprun fluent_vgl
+    vglrun fluent "$@"
+
+# Container details
+%labels
+    ANSYS 2025R2 Fluent container
+
