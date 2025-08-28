@@ -1,0 +1,95 @@
+# Build and install the ANSYS 2025R2 Fluent container
+
+easyblock = "Binary"
+
+name = "ANSYS"
+version = "2025R2"
+versionsuffix = "-Fluent-Container"
+
+homepage = "https://www.ansys.com"
+description = """ANSYS simulation software enables organizations to confidently predict how
+    their products will operate in the real world. We believe that every product is a promise
+    of something greater.
+    Container modules do not support multi-node MPI."""
+
+modloadmsg = """------------------------------------------------------------
+This module loads an experimental build of ANSYS Fluent from
+an apptainer container image. It does not support multi-node
+jobs. Proceed with caution.
+------------------------------------------------------------
+Available Commands: fluent, runwb2
+------------------------------------------------------------"""
+
+toolchain = SYSTEM
+osdependencies = [("p7zip-plugins", "p7zip-full")]  # for extracting iso-files
+
+# The file containing the container definition
+local_def_file = "%(name)s-%(version)s%(versionsuffix)s.def"
+
+download_instructions = "Manually obtain (ANSYS%(version)s_LINX64_DISKX.iso) from your ANSYS vendor"
+sources = [
+    {"filename": "ANSYS%(version)s_LINX64_DISK1.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK2.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK3.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK4.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK5.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK6.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK7.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK8.iso"},
+    {"filename": "ANSYS%(version)s_LINX64_DISK9.iso"},
+    {"filename": local_def_file},
+]
+checksums = [
+    {"ANSYS2025R2_LINX64_DISK1.iso": "ea92e3673664d35b921f8f7180ce4465caf61039b84bff634f03fd53e48bb860"},
+    {"ANSYS2025R2_LINX64_DISK2.iso": "13d4b036bb14c2f653b13a233be6d574f50ed06014746b468072e1781498be4c"},
+    {"ANSYS2025R2_LINX64_DISK3.iso": "097b48151285ba3c3b26763595fd86b8899546cb8b35d18ffa8501c2c6cb80b6"},
+    {"ANSYS2025R2_LINX64_DISK4.iso": "5a83dcc88a844754547ba70a02c95509dec396dd2ba90f77e2e2f8fdd278085f"},
+    {"ANSYS2025R2_LINX64_DISK5.iso": "57cc79ce44a14072427e3de192b9dffc0900c627b48db9f7371310d333edab45"},
+    {"ANSYS2025R2_LINX64_DISK6.iso": "01fc43d78d392ded01d52953bd8506b9b203e3a5ec1d5c45ec4c21303112fc6e"},
+    {"ANSYS2025R2_LINX64_DISK7.iso": "06240286f31d21e86ff7672f20c400b268cdd3a93ac3d9afb3950c099247de68"},
+    {"ANSYS2025R2_LINX64_DISK8.iso": "53edeb8368bdcb2bd6a5b8620b56cd32854e3b85225b10874bfc68151c3e251f"},
+    {"ANSYS2025R2_LINX64_DISK9.iso": "9b66d9e0448f4e80e42ec47a9de96fbdde9948214e61a1682369f2d2ffbd50ff"},
+    {"ANSYS-2025R2-Fluent-Container.def": "103974642206087898247755f8a176336a8c8f5a2d835c099d12a3e50c8fc92a"},
+]
+extract_sources = False
+
+# Specify the license server here in the form of port@server
+local_license_server = "2325:1055@host.ac.uk"
+
+# launch command
+local_launch_command = "apptainer exec --env ANSYSLMD_LICENSE_FILE=" + local_license_server
+
+# name of the SIF image to generate
+local_sif_image = "%(name)s-%(version)s%(versionsuffix)s.sif"
+
+
+# make slurm work via bind mount and path shenanigans?
+# mpi?
+# gpu?
+
+# it would be nice to set the apptainer tmpdir to the build directory (which ideally is some sort of fast-ish storage), e.g.,
+# "export APPTAINER_TMPDIR=%(builddir)s && apptainer build --fakeroot " + local_sif_image + " " + local_def_file,
+# but you can't do this because the path becomes longer than 100 characters :(
+
+# build the apptainer image and copy it to the install dir
+# create little shell scripts to exec the desired binaries (these could be made a loop?)
+install_cmds = [
+    "apptainer build --fakeroot " + local_sif_image + " " + local_def_file,
+    "cp " + local_sif_image + " %(installdir)s",
+    "mkdir -p %(installdir)s/bin",
+    "echo \#\!/bin/bash > %(installdir)s/bin/fluent",
+    "echo " + local_launch_command + " %(installdir)s/" + local_sif_image + " fluent \\\"\\$@\\\" >> %(installdir)s/bin/fluent",
+    "chmod +x %(installdir)s/bin/fluent",
+    "echo \#\!/bin/bash > %(installdir)s/bin/runwb2",
+    "echo " + local_launch_command + " %(installdir)s/" + local_sif_image + " runwb2 \\\"\\$@\\\" >> %(installdir)s/bin/runwb2",
+    "chmod +x %(installdir)s/bin/runwb2",
+]
+
+sanity_check_paths = {
+    "files": ["bin/fluent", "bin/runwb2"],
+    "dirs": [],
+}
+
+sanity_check_commands = ["fluent -help"]
+
+moduleclass = "tools"
