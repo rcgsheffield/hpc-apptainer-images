@@ -2,9 +2,8 @@
 
 easyblock = "Binary"
 
-name = "ANSYS"
+name = "ANSYS-cfd-Container"
 version = "2025R2"
-versionsuffix = "-cfd-Container"
 
 homepage = "https://www.ansys.com"
 description = """ANSYS simulation software enables organizations to confidently predict how
@@ -93,8 +92,10 @@ install_cmds = [
     "echo \#\!/bin/bash > %(installdir)s/bin/cfx5solve",
     "echo " + local_launch_command + " %(installdir)s/" + local_sif_image + " cfx5solve \\\"\\$@\\\" >> %(installdir)s/bin/cfx5solve",    
     "chmod +x %(installdir)s/bin/cfx5solve",
+
+    # CFX Post has a bug/constraint where the model view screen is black and only displays if there are the added enviromental features. Looking of how to add them inside the container itself on the next iteration.
     "echo \#\!/bin/bash > %(installdir)s/bin/cfx5post",
-    "echo " + local_launch_command + " %(installdir)s/" + local_sif_image + " cfx5post \\\"\\$@\\\" >> %(installdir)s/bin/cfx5post",
+    "echo " + local_launch_command + " --env LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/usr/lib/x86_64-linux-gnu/libgcc_s.so.1  --env LIBGL_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri --env LIBGL_ALWAYS_SOFTWARE=1 " + " %(installdir)s/" + local_sif_image + " cfx5post \\\"\\$@\\\" >> %(installdir)s/bin/cfx5post",
     "chmod +x %(installdir)s/bin/cfx5post",
 ]
 
