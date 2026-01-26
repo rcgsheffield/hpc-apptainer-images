@@ -1,0 +1,75 @@
+# Build and install the conda Alma9 container 
+
+easyblock = "Binary"
+
+name = "conda_alma9_container"
+version = "v1"
+
+homepage = "https://www.anaconda.com"
+description = """Built to complement the rich, open source Python community,
+the Anaconda platform provides an enterprise-ready data analytics platform
+that empowers companies to adopt a modern open data science analytics architecture.
+This is to support python package and conda package installation that break due to older osdependencies(specifically centos7) not supporting newer GLIBC and manylinux wheels.    
+Container modules do not support multi-node MPI."""
+
+modloadmsg = """------------------------------------------------------------
+This module loads an experimental build ofAnaconda from
+an apptainer container image. It does not support multi-node
+jobs. Proceed with caution.
+------------------------------------------------------------
+Available Commands: 
+------------------------------------------------------------"""
+
+toolchain = SYSTEM
+osdependencies = [("p7zip-plugins", "p7zip-full")]  # for extracting iso-files
+
+
+checksums = [
+    {"conda_alma9_container_v1.def": "d839b5c017e0843d4d6e7aee315f80c2732b06bd30416bcc6cc92a12aa785b4b"},
+]
+extract_sources = False
+
+# launch command
+local_shell_launch_command = "apptainer shell --env CONDARC=/users/$USER/.condarc --bind /users/$USER/.condarc:/opt/anaconda3/.condarc"  
+local_exec_launch_command  = "apptainer exec  --env CONDARC=/users/$USER/.condarc --bind /users/$USER/.condarc:/opt/anaconda3/.condarc"  
+
+#Definition file
+local_def_file = "%(name)s-%(version)s.def"
+
+# name of the SIF image to generate
+local_sif_image = "%(name)s-%(version)s.sif"
+
+
+modextravars = {
+    'conda_alma9_container': '%(installdir)s/local_sif_image',
+}
+
+install_cmds = [
+    "apptainer build --fakeroot " + local_sif_image + " " + local_def_file,
+    "cp " + local_sif_image + " %(installdir)s",
+    "mkdir -p %(installdir)s/bin",
+
+    # Python
+    "echo \#\!/bin/bash > %(installdir)s/bin/python",
+    "echo " + local_shell_launch_command + " %(installdir)s/" + local_sif_image + " python \\\"\\$@\\\" >> %(installdir)s/bin/python",
+    "chmod +x %(installdir)s/bin/python",
+
+
+    "echo \#\!/bin/bash > %(installdir)s/bin/apptainer-exec",
+    "echo " + local_exec_launch_command + " %(installdir)s/" + local_sif_image + " \\$@\\\" >> %(installdir)s/bin/apptainer-exec",
+    "chmod +x %(installdir)s/bin/apptainer-exec",
+
+
+    "echo \#\!/bin/bash > %(installdir)s/bin/apptainer-shell",
+    "echo " + local_shell_launch_command + " %(installdir)s/" + local_sif_image >> %(installdir)s/bin/apptainer-shell",
+    "chmod +x %(installdir)s/bin/apptainer-shell",
+]
+
+sanity_check_paths = {
+    "files": ["bin/python", "bin/apptainer-shell", "bin/apptainer-exec" ],
+    "dirs": [],
+}
+
+sanity_check_commands = ["python --version"]
+
+moduleclass = "tools"

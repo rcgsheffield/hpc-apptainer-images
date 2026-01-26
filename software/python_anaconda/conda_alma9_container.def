@@ -1,0 +1,62 @@
+Bootstrap: docker
+From: almalinux:9
+
+%files
+
+%post
+    # Update system packages & Install common development tools and utilities
+    dnf update -y 
+    dnf -y install epel-release
+    dnf groupinstall -y "Development Tools"
+
+    dnf install -y \
+        wget \
+        bzip2 \
+        ca-certificates \
+        libffi-devel \
+        openssl-devel \
+        bzip2-devel \
+        readline-devel \
+        sqlite-devel \
+        xz-devel \
+        zlib-devel \
+        tk-devel \
+        ncurses-devel \
+        git \
+        vim \
+        gcc \
+        gcc-c++ \
+        make \
+        python3.12 \
+        python3.11-pip \
+        glibc \
+        libstdc++ \
+        zlib \
+        fontconfig \
+
+    # Full Anaconda install
+    # Download the installer
+    wget https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh
+
+    # Run the installer
+    bash Anaconda3-2024.10-1-Linux-x86_64.sh -b -p /opt/anaconda3 -u
+
+
+%environment
+        export PATH=/usr/bin:$PATH
+        export PATH=/usr/local/bin:$PATH
+        export PATH="/opt/anaconda3/bin:$PATH" 
+        export LC_ALL=C
+
+%runscript
+    echo "AlmaLinux 9 Conda Container"
+    exec /bin/bash "$@"
+
+%labels
+    Author Nikishe
+    Version v1.0
+    Description AlmaLinux 9 Container container
+
+%help
+    This is an AlmaLinux 9 Conda container.
+    Usage: apptainer shell --env CONDARC=/users/cs1nmu/.condarc --bind /users/cs1nmu/.condarc:/opt/anaconda3/.condarc conda_alma9_container_v1.sif
