@@ -1,0 +1,140 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+#intial plans was to use Alma9 but the build was not finding the QT libraries eventough installed.
+#Talking to schrodinger support about the bug we settled on using ubuntu
+
+%files
+    # Copy the Schrödinger installer from your local machine
+    # Set SCHRODINGER_INSTALLER before building
+    ${SCHRODINGER_INSTALLER} /opt/
+
+%post
+    set -e
+
+    # Avoid tzdata prompt
+    export DEBIAN_FRONTEND=noninteractive
+	ln -s /bin/true /usr/bin/systemctl
+
+    # Update system & install core tools
+    apt-get update -y
+    apt-get upgrade -y
+	
+	#installs the schrodinger ubuntu dependancies listed here https://github.com/schrodinger/linux_package_requirement/tree/main/packages
+	#We listed each install individually as it makes the logs so much easier to read when debugging
+	echo "================== installing the schrodinger ubuntu dependancies =================="
+    apt-get install -y wget
+    apt-get install -y vim
+    apt-get install -y gcc
+    apt-get install -y g++
+    apt-get install -y make 		
+    apt-get install -y python3
+    apt-get install -y python3-pip
+    apt-get install -y libglib2.0-0
+    apt-get install -y zlib1g
+    apt-get install -y fontconfig
+    apt-get install -y libfreetype6
+    apt-get install -y libstdc++6
+    apt-get install -y libc6
+    apt-get install -y expat
+    apt-get install -y libnsl2
+    apt-get install -y libdrm2        
+    apt-get install -y libgl1
+    apt-get install -y libglu1-mesa
+    apt-get install -y libsm6
+    apt-get install -y libice6
+    apt-get install -y libx11-6
+    apt-get install -y libx11-xcb1
+    apt-get install -y libxau6
+    apt-get install -y libxext6
+    apt-get install -y libxft2
+    apt-get install -y libxi6
+    apt-get install -y libxrender1
+    apt-get install -y libxt6
+    apt-get install -y libxkbcommon0
+    apt-get install -y libxcb1
+    apt-get install -y libxcb-cursor0
+    apt-get install -y libxcb-image0
+    apt-get install -y libxcb-keysyms1
+    apt-get install -y libxcb-render-util0
+    apt-get install -y libxcb-util1
+    apt-get install -y libxcb-xinerama0
+    apt-get install -y libxss1
+	
+	#added " --no-install-recommends" to avoid systemd. Since we dont need it for apptainer and schrodinger theres no point to install it. So better to omit than going down the path of 
+	#fixing unecessary file permission errors
+    apt-get install -y --no-install-recommends git	
+    apt-get install -y --no-install-recommends libuuid1
+    apt-get install -y --no-install-recommends mesa-utils
+    apt-get install -y --no-install-recommends mesa-utils-extra
+    apt-get install -y --no-install-recommends libxkbcommon-x11-0
+
+	echo "================== Qt6 (Ubuntu packages) =================="	    
+	apt-get install -y --no-install-recommends  build-essential    
+    apt-get install -y --no-install-recommends  qt6-base-dev
+    apt-get install -y --no-install-recommends  qt6-base-dev-tools
+    apt-get install -y --no-install-recommends  qt6-qpa-plugins
+
+	echo "================== Clean apt cache =================="    
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    ldconfig
+
+    echo "================== Schrödinger install =================="
+
+    mkdir -p /opt/schrodinger
+    cd /opt
+
+    tar -xvf Schrodinger_Suites_2025-4_Linux-x86_64.tar
+    cd Schrodinger_Suites_2025-4_Linux-x86_64
+	
+    export LC_ALL=C
+    export SCHRODINGER=/opt/schrodinger
+    export PATH=/opt/schrodinger:$PATH
+
+    export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/schrodinger/lib:/opt/schrodinger/internal/lib:$LD_LIBRARY_PATH
+    export QT_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+    export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+    export QT_DEBUG_PLUGINS=1
+
+    # Add library path to ldconfig
+    echo "/usr/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/qt6.conf
+    ldconfig
+
+    # Verify Qt
+    ldconfig -p | grep Qt6 || true
+
+    which python3
+    which pip3
+	
+	./INSTALL -d .  -s /opt/schrodinger -d /opt/Schrodinger_Suites_2025-4_Linux-x86_64 -k /usr/tmp -t /opt/schrodinger/thirdparty -b * 
+
+    echo "======================================== finishing Schrödinger install step ========================================="
+	
+	echo "======================================== clean up the install files to make the container size considerably smaller =========================================" 
+    rm -rf /opt/Schrodinger_Suites_2025-4_Linux-x86_64.tar
+
+%environment
+    export LC_ALL=C
+    export SCHRODINGER=/opt/schrodinger
+    export PATH=/opt/schrodinger:$PATH
+    export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/opt/schrodinger/lib:/opt/schrodinger/internal/lib:$LD_LIBRARY_PATH
+    export QT_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+    export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+	
+    # License configured externally:
+    # export SCHROD_LICENSE_FILE=27000@your-license-server.com
+
+%runscript
+    echo "Ubuntu latest Schrödinger Container"
+    exec /bin/bash "$@"
+
+%labels
+    Author Nikishe
+    Version v1.0
+    Description Ubuntu latest base container for Schrödinger Suite
+
+%help
+    This is an Ubuntu(latest) container for Schrödinger Suite.
+    Usage: apptainer run ubuntu22.sif
