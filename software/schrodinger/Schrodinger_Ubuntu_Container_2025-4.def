@@ -6,8 +6,7 @@ From: ubuntu:latest
 
 %files
     # Copy the Schrödinger installer from your local machine
-    # Set SCHRODINGER_INSTALLER before building
-    ${SCHRODINGER_INSTALLER} /opt/
+    Schrodinger_Suites_2025-4_Linux-x86_64.tar /opt/
 
 %post
     set -e
@@ -84,7 +83,9 @@ From: ubuntu:latest
     echo "================== Schrödinger install =================="
 
     mkdir -p /opt/schrodinger
-    cd /opt
+    cd /opt/
+    ls /opt/
+    export SCHRODINGER_INSTALLER=/opt/Schrodinger_Suites_2025-4_Linux-x86_64.tar
 
     tar -xvf Schrodinger_Suites_2025-4_Linux-x86_64.tar
     cd Schrodinger_Suites_2025-4_Linux-x86_64
@@ -124,7 +125,7 @@ From: ubuntu:latest
     export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
 	
     # License configured externally:
-    # export SCHROD_LICENSE_FILE=27000@your-license-server.com
+    # export SCHRODINGER_LICENSE_SERVERS=your-license-server.com:port
 
 %runscript
     echo "Ubuntu latest Schrödinger Container"
@@ -137,4 +138,4 @@ From: ubuntu:latest
 
 %help
     This is an Ubuntu(latest) container for Schrödinger Suite.
-    Usage: apptainer run ubuntu22.sif
+    Usage: apptainer run ContainerName.sif

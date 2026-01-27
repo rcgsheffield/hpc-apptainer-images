@@ -24,17 +24,17 @@ osdependencies = [("p7zip-plugins", "p7zip-full")]  # for extracting iso-files
 
 sources = [
     {"filename": "Schrodinger_Ubuntu_Container_2025-4.def"},
-    {"filename": "Schrodinger_Suites_%(version)s_Linux-x86_64.tar"}
+    {"filename": "Schrodinger_Suites_2025-4_Linux-x86_64.tar"}
 ]
 checksums = [
-    {"Schrodinger_Ubuntu_Container_2025-4.def"      : "8498ae7e71a56cac91d09ff7bc1d5050"},
+    {"%(name)s_%(version)s.def"      : "37ed2d8c9e42712c0ad75ed6ae65976f"},
     {"Schrodinger_Suites_2025-4_Linux-x86_64.tar"   : "49f77cf3a4443846bce0b0f07a743087"}
 ]
 extract_sources = False
 
 # launch command
-local_shell_launch_command = "apptainer shell --env export SCHROD_LICENSE_FILE=53001@chem-lic1.shef.ac.uk --bind /etc/machine-id:/etc/machine-id:ro "  
-local_exec_launch_command  = "apptainer exec  --env export SCHROD_LICENSE_FILE=53001@chem-lic1.shef.ac.uk --bind /etc/machine-id:/etc/machine-id:ro "  
+local_shell_launch_command = "apptainer shell --env SCHRODINGER_LICENSE_SERVERS=chem-lic1.shef.ac.uk:53001 --bind /etc/machine-id:/etc/machine-id:ro "  
+local_exec_launch_command  = "apptainer exec  --env SCHRODINGER_LICENSE_SERVERS=chem-lic1.shef.ac.uk:53001 --bind /etc/machine-id:/etc/machine-id:ro "  
 
 #Definition file
 local_def_file = "%(name)s_%(version)s.def"
@@ -56,12 +56,12 @@ install_cmds = [
 
     
     "echo \#\!/bin/bash > %(installdir)s/bin/apptainer-shell",
-    "echo " + local_shell_launch_command + " %(installdir)s/" + local_sif_image + " \\$@\\\" >> %(installdir)s/bin/apptainer-shell",
-    "chmod +x %(installdir)s/bin/python",
+    "echo " + local_shell_launch_command + " %(installdir)s/"  + local_sif_image + " \\\"\\$@\\\"  >> %(installdir)s/bin/apptainer-shell",
+    "chmod +x %(installdir)s/bin/apptainer-shell",
 
 
     "echo \#\!/bin/bash > %(installdir)s/bin/apptainer-exec",
-    "echo " + local_exec_launch_command  + " %(installdir)s/" + local_sif_image + " \\$@\\\" >> %(installdir)s/bin/apptainer-exec",
+    "echo " + local_exec_launch_command  + " %(installdir)s/" + local_sif_image + " \\\"\\$@\\\" >> %(installdir)s/bin/apptainer-exec",
     "chmod +x %(installdir)s/bin/apptainer-exec",
 ]
 
